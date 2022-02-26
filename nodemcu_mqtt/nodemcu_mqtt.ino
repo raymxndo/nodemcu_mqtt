@@ -63,6 +63,21 @@ void callback(String topic, byte* message, unsigned int length) {
       Serial.print("1.5 KG");
     }
   }
+
+  if(topic=="cage_2/feed_2"){
+    if((messageInfo == "ON 0.5 KG") || (messageInfo == "0.5 KG ON")){
+      feed_2_on_0p5kg ();
+      Serial.print("0.5 KG");
+      }
+    else if((messageInfo == "ON 1 KG") || (messageInfo == "1 KG ON")){
+      feed_2_on_1kg ();
+      Serial.print("1 KG");
+    }
+    else if((messageInfo == "ON 1.5 KG") || (messageInfo == "1.5 KG ON")){
+      feed_2_on_1p5kg ();
+      Serial.print("1.5 KG");
+    }
+  }
   Serial.println();
 }
 
@@ -80,6 +95,10 @@ void reconnect() {
       espclient.subscribe("cage_1/feed_1");
       espclient.subscribe("cage_1/feed_1/OFF");
       espclient.subscribe("cage_1/weight_1");
+
+      espclient.subscribe("cage_2/feed_2");
+      espclient.subscribe("cage_2/feed_2/OFF");
+      espclient.subscribe("cage_2/weight_2");
     } else {
       Serial.print("failed, rc=");
       Serial.print(espclient.state());
@@ -115,32 +134,31 @@ void feed_1_on_1p5kg () {
   }
 }
 
-/*
 //feed 2 voids
 
 void feed_2_on_0p5kg () {
   mySerial.write(211); // Write integer 211 to PIC
-  if(millis() >= time_now + period){
-    time_now += period;
-    Firebase.setBool(firebaseData, "cage_2/feed_2", false); // OFF the feed based on the delay
+  if(millis() >= time_now + 100){
+    time_now += 100;
+    espclient.publish("cage_2/feed_2/OFF", "OFF"); 
   }
 }
 
 void feed_2_on_1kg () {
   mySerial.write(212); // Write integer 212 to PIC
-  if(millis() >= time_now + period){
-    time_now += period;
-    Firebase.setBool(firebaseData, "cage_2/feed_2", false); // OFF the feed based on the delay
+  if(millis() >= time_now + 100){
+    time_now += 100;
+    espclient.publish("cage_2/feed_2/OFF", "OFF"); 
   }
 }
 
 void feed_2_on_1p5kg () {
   mySerial.write(213); // Write integer 213 to PIC
-  if(millis() >= time_now + period){
-    time_now += period;
-    Firebase.setBool(firebaseData, "cage_2/feed_2", false); // OFF the feed based on the delay
+  if(millis() >= time_now + 100){
+    time_now += 100;
+    espclient.publish("cage_2/feed_2/OFF", "OFF"); 
   }
-}*/
+}
                                                               
 void setup() 
 {
