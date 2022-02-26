@@ -49,16 +49,10 @@ void callback(String topic, byte* message, unsigned int length) {
   Serial.println();
 
   // If a message is received on the topic cage_1/feed_1, you check if the message is either on or off. Turns the lamp GPIO according to the message
-  if(topic=="cage_1/feed_1/ON"){
-      Serial.print("Changing State to ");
-      if(messageInfo == "ON"){
+  if(topic=="cage_1/feed_1"){
+    if(messageInfo == "ON0.5 KG"){
         feed_1_on_0p5kg ();
-        digitalWrite(LED_BUILTIN, HIGH);
-        Serial.print("On");
-      }
-      else if(messageInfo == "OFF"){
-        digitalWrite(LED_BUILTIN, LOW);
-        Serial.print("Off");
+        Serial.print("Feed 1 On");
       }
   }
   Serial.println();
@@ -75,8 +69,8 @@ void reconnect() {
       Serial.println("connected");  
       // Subscribe or resubscribe to a topic
       // You can subscribe to more topics (to control more LEDs in this example)
-      espclient.subscribe("cage_1/feed_1/ON");
-      espclient.subscribe("cage_1/feed_1/OFF");
+      espclient.subscribe("cage_1/feed_1");
+      espclient.subscribe("cage_1/weight_1");
     } else {
       Serial.print("failed, rc=");
       Serial.print(espclient.state());
@@ -92,7 +86,7 @@ void feed_1_on_0p5kg () {
   mySerial.write(111); // Write integer 111 to PIC
   if(millis() >= time_now + period){
     time_now += period;
-  espclient.publish("cage_1/feed_1/ON", "OFF"); 
+  espclient.publish("cage_1/feed_1", "OFF"); 
   }
 }
 /*
