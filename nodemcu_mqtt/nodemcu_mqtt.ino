@@ -50,10 +50,18 @@ void callback(String topic, byte* message, unsigned int length) {
 
   // If a message is received on the topic cage_1/feed_1, you check if the message is either on or off. Turns the lamp GPIO according to the message
   if(topic=="cage_1/feed_1"){
-    if(messageInfo == "ON0.5 KG"){
-        feed_1_on_0p5kg ();
-        Serial.print("Feed 1 On");
+    if((messageInfo == "ON 0.5 KG") || (messageInfo == "0.5 KG ON")){
+      feed_1_on_0p5kg ();
+      Serial.print("0.5 KG");
       }
+    else if((messageInfo == "ON 1 KG") || (messageInfo == "1 KG ON")){
+      feed_1_on_1kg ();
+      Serial.print("1 KG");
+    }
+    else if((messageInfo == "ON 1.5 KG") || (messageInfo == "1.5 KG ON")){
+      feed_1_on_1p5kg ();
+      Serial.print("1.5 KG");
+    }
   }
   Serial.println();
 }
@@ -70,6 +78,7 @@ void reconnect() {
       // Subscribe or resubscribe to a topic
       // You can subscribe to more topics (to control more LEDs in this example)
       espclient.subscribe("cage_1/feed_1");
+      espclient.subscribe("cage_1/feed_1/OFF");
       espclient.subscribe("cage_1/weight_1");
     } else {
       Serial.print("failed, rc=");
@@ -84,28 +93,29 @@ void reconnect() {
 // feed 1 voids
 void feed_1_on_0p5kg () {
   mySerial.write(111); // Write integer 111 to PIC
-  if(millis() >= time_now + period){
-    time_now += period;
-  espclient.publish("cage_1/feed_1", "OFF"); 
+  if(millis() >= time_now + 100){
+    time_now += 100;
+    espclient.publish("cage_1/feed_1/OFF", "OFF"); 
   }
 }
-/*
+
 void feed_1_on_1kg () {
   mySerial.write(112); // Write integer 112 to PIC
-  if(millis() >= time_now + period){
-    time_now += period;
-    Firebase.setBool(firebaseData, "cage_1/feed_1", false); // OFF the feed based on the delay
+  if(millis() >= time_now + 100){
+    time_now += 100;
+    espclient.publish("cage_1/feed_1/OFF", "OFF"); 
   }
 }
 
 void feed_1_on_1p5kg () {
   mySerial.write(113); // Write integer 113 to PIC
-  if(millis() >= time_now + period){
-    time_now += period;
-    Firebase.setBool(firebaseData, "cage_1/feed_1", false); // OFF the feed based on the delay
+  if(millis() >= time_now + 100){
+    time_now += 100;
+    espclient.publish("cage_1/feed_1/OFF", "OFF"); 
   }
 }
 
+/*
 //feed 2 voids
 
 void feed_2_on_0p5kg () {
