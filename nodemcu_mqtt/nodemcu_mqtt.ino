@@ -37,16 +37,16 @@ int percentageY  = 0;
 // This functions is executed when some device publishes a message to a topic that your NodeMCU is subscribed to
 
 void callback(String topic, byte* message, unsigned int length) {
-  Serial.print("Message arrived on topic: ");
-  Serial.print(topic);
-  Serial.print(". Message: ");
+  //Serial.print("Message arrived on topic: ");
+  //Serial.print(topic);
+  //Serial.print(". Message: ");
   String messageInfo;
   
   for (int i = 0; i < length; i++) {
-    Serial.print((char)message[i]);
+    //Serial.print((char)message[i]);
     messageInfo += (char)message[i];
   }
-  Serial.println();
+ // Serial.println();
 
   // If a message is received on the topic cage_1/feed_1, you check if the message is either on or off. Turns the lamp GPIO according to the message
   if(topic=="cage_1/feed_1"){
@@ -78,7 +78,7 @@ void callback(String topic, byte* message, unsigned int length) {
       Serial.print("1.5 KG");
     }
   }
-  Serial.println();
+  //Serial.println();
 }
 
 // This functions reconnects your ESP8266 to your MQTT broker
@@ -201,6 +201,39 @@ void loop()
  timeStatus = clock1.dateFormat("g:i A", dt);*/
 
   //Serial.println(timeStatus);
+
+  //Ultrasonic Sensor Water Tank (Master PIC)
+
+    if (mySerial.read() == 'x') {
+      ultrasonicRead = mySerial.readStringUntil('\r');
+      ultrasonicInt = ultrasonicRead.toInt();
+      percentage = map(ultrasonicInt, 20, 4, 0, 100);
+      if (percentage < 0) {
+        percentage = 0;
+      }
+
+      else if (percentage > 100) {
+        percentage = 100; 
+      }
+      Serial.print("Water Tank : ");
+      Serial.println(percentage);
+  }
+
+ //Ultrasonic Sensor Water Tank (Slave 1 PIC)
+  if (mySerial.read() == 'y') {
+      ultrasonicReadY= mySerial.readStringUntil('\r');
+      ultrasonicIntY = ultrasonicReadY.toInt();
+      percentageY = map(ultrasonicIntY, 20, 4, 0, 100);
+      if (percentageY < 0) {
+        percentageY = 0;
+      }
+
+      else if (percentageY > 100) {
+        percentageY = 100; 
+      }
+      Serial.print("Feed Tank 1: ");
+      Serial.println(percentageY);
+  }
 
  if (!espclient.connected()) {
     reconnect();
