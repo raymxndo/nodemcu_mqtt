@@ -2,25 +2,21 @@
 #include <PubSubClient.h>                                              
 #include <SoftwareSerial.h>
 
-#include <Wire.h>
-#include <DS3231.h>
- 
-#define WIFI_SSID "DE LA VICTORIA NETWORK-2.4GHZ"                                          
+#define WIFI_SSID "Bahay Kubo - 2.4GHz"                                          
 #define WIFI_PASSWORD "Isuzutrooper_grv208" 
 
-const char* mqtt_server = "test.mosquitto.org";
-
 SoftwareSerial mySerial (D6, D5); //RX, TX pins
-
+SoftwareSerial mySerial2 (D4, D3); //RX, TX pins
 // Initializes the espClient. You should change the espClient name if you have multiple ESPs running in your home automation system
 WiFiClient espClient;
 PubSubClient espclient(espClient);
 
-DS3231 clock1;
-RTCDateTime dt;
+const char* mqtt_server = "test.mosquitto.org";
+
 
 int period = 500;
 unsigned long time_now = 0;
+unsigned long delay_sched = 0;
 
 String timeStatus;
 
@@ -34,6 +30,62 @@ String ultrasonicReadY;
 int ultrasonicIntY = 0; 
 int percentageY  = 0;
 
+int ultrasonicResultZ;
+String ultrasonicReadZ;
+int ultrasonicIntZ = 0; 
+int percentageZ = 0;
+
+int timeResult;
+String timeRead;
+int timeInt;
+
+String feed1_0, feed1_1, feed1_2, feed2_0, feed2_1, feed2_2;
+String wash1_0, wash1_1, wash1_2, wash2_0, wash2_1, wash2_2;
+
+
+// feed 1 voids
+void feed_1_on_0p5kg () {
+  mySerial.write('a'); // Write integer 111 to PIC
+  espclient.publish("cage_1/feed_1/OFF", "OFF");
+}
+
+void feed_1_on_1kg () {
+  mySerial.write('b'); // Write integer 112 to PIC
+  espclient.publish("cage_1/feed_1/OFF", "OFF");
+}
+
+void feed_1_on_1p5kg () {
+  mySerial.write('c'); // Write integer 113 to PIC
+  espclient.publish("cage_1/feed_1/OFF", "OFF");
+}
+
+//feed 2 voids
+
+void feed_2_on_0p5kg () {
+  mySerial.write('d'); // Write integer 211 to PIC
+  espclient.publish("cage_2/feed_2/OFF", "OFF");
+}
+
+void feed_2_on_1kg () {
+  mySerial.write('e'); // Write integer 212 to PIC
+  espclient.publish("cage_2/feed_2/OFF", "OFF");
+}
+
+void feed_2_on_1p5kg () {
+  mySerial.write('f'); // Write integer 213 to PIC
+  espclient.publish("cage_2/feed_2/OFF", "OFF");
+}
+
+void wash_1 () {
+  mySerial.write('g');
+  espclient.publish("wash1_off", "OFF");
+}
+
+void wash_2 () {
+  mySerial.write('h');
+  espclient.publish("wash2_off", "OFF");
+}
+
 // This functions is executed when some device publishes a message to a topic that your NodeMCU is subscribed to
 
 void callback(String topic, byte* message, unsigned int length) {
@@ -46,37 +98,109 @@ void callback(String topic, byte* message, unsigned int length) {
     //Serial.print((char)message[i]);
     messageInfo += (char)message[i];
   }
- // Serial.println();
+ //Serial.println();
 
-  // If a message is received on the topic cage_1/feed_1, you check if the message is either on or off. Turns the lamp GPIO according to the message
+  // CAGE 1 Feed
   if(topic=="cage_1/feed_1"){
     if((messageInfo == "ON 0.5 KG") || (messageInfo == "0.5 KG ON")){
       feed_1_on_0p5kg ();
-      Serial.print("0.5 KG");
+      Serial.println("0.5 KG");
       }
     else if((messageInfo == "ON 1 KG") || (messageInfo == "1 KG ON")){
       feed_1_on_1kg ();
-      Serial.print("1 KG");
+      Serial.println("1 KG");
     }
     else if((messageInfo == "ON 1.5 KG") || (messageInfo == "1.5 KG ON")){
       feed_1_on_1p5kg ();
-      Serial.print("1.5 KG");
+      Serial.println("1.5 KG");
     }
   }
+
+  // CAGE 2 Feed
 
   if(topic=="cage_2/feed_2"){
     if((messageInfo == "ON 0.5 KG") || (messageInfo == "0.5 KG ON")){
       feed_2_on_0p5kg ();
-      Serial.print("0.5 KG");
+      Serial.println("0.5 KG");
       }
     else if((messageInfo == "ON 1 KG") || (messageInfo == "1 KG ON")){
       feed_2_on_1kg ();
-      Serial.print("1 KG");
+      Serial.println("1 KG");
     }
     else if((messageInfo == "ON 1.5 KG") || (messageInfo == "1.5 KG ON")){
       feed_2_on_1p5kg ();
-      Serial.print("1.5 KG");
+      Serial.println("1.5 KG");
     }
+  }
+
+  // CAGE 1 Wash
+
+  if (topic=="cage1_wash") {
+    if (messageInfo == "ON") {
+      wash_1();
+      Serial.println("Wash 1");
+    }
+  }
+
+  if (topic=="cage2_wash") {
+    if (messageInfo == "ON") {
+      wash_2();
+      Serial.println("Wash 2");
+    }
+  }
+
+  //CAGE 1 sched
+
+  if(topic=="cage1_feed_sched/0"){
+      feed1_0 = messageInfo;
+  }
+
+  if(topic=="cage1_feed_sched/1"){
+    feed1_1 = messageInfo;
+  }
+
+  if(topic=="cage1_feed_sched/2"){
+    feed1_2 = messageInfo;
+  }
+
+  //CAGE 2 sched
+
+  if(topic=="cage2_feed_sched/0"){
+    feed2_0 = messageInfo;
+  }
+
+  if(topic=="cage2_feed_sched/1"){
+    feed2_1 = messageInfo;
+  }
+
+  if(topic=="cage2_feed_sched/2"){
+    feed2_2 = messageInfo; 
+  }
+
+  //cage 1 wash sched
+  if(topic=="cage1_wash_sched/0"){
+    wash1_0 = messageInfo;
+  }
+
+  if(topic=="cage1_wash_sched/1"){
+    wash1_1 = messageInfo;
+  }
+
+  if(topic=="cage1_wash_sched/2"){
+    wash1_2 = messageInfo;
+  }
+
+  // Cage 2 wash sched
+  if(topic=="cage2_wash_sched/0"){
+    wash2_0 = messageInfo;
+  }
+
+  if(topic=="cage2_wash_sched/1"){
+    wash2_1 = messageInfo;
+  }
+
+  if(topic=="cage2_wash_sched/2"){
+    wash2_2 = messageInfo;
   }
   //Serial.println();
 }
@@ -99,6 +223,32 @@ void reconnect() {
       espclient.subscribe("cage_2/feed_2");
       espclient.subscribe("cage_2/feed_2/OFF");
       espclient.subscribe("cage_2/weight_2");
+
+      espclient.subscribe("water_tank");
+      espclient.subscribe("feed_tank_1");
+      espclient.subscribe("feed_tank_2");
+
+      espclient.subscribe("cage1_feed_sched/0");
+      espclient.subscribe("cage1_feed_sched/1");
+      espclient.subscribe("cage1_feed_sched/2");
+
+      espclient.subscribe("cage2_feed_sched/0");
+      espclient.subscribe("cage2_feed_sched/1");
+      espclient.subscribe("cage2_feed_sched/2");
+
+      espclient.subscribe("cage1_wash");
+      espclient.subscribe("cage2_wash");
+
+      espclient.subscribe("wash1_off");
+      espclient.subscribe("wash2_off");
+
+      espclient.subscribe("cage1_wash_sched/0");
+      espclient.subscribe("cage1_wash_sched/1");
+      espclient.subscribe("cage1_wash_sched/2");
+
+      espclient.subscribe("cage2_wash_sched/0");
+      espclient.subscribe("cage2_wash_sched/1");
+      espclient.subscribe("cage2_wash_sched/2");
     } else {
       Serial.print("failed, rc=");
       Serial.print(espclient.state());
@@ -108,62 +258,12 @@ void reconnect() {
     }
   }
 }
-
-// feed 1 voids
-void feed_1_on_0p5kg () {
-  mySerial.write(111); // Write integer 111 to PIC
-  if(millis() >= time_now + 100){
-    time_now += 100;
-    espclient.publish("cage_1/feed_1/OFF", "OFF"); 
-  }
-}
-
-void feed_1_on_1kg () {
-  mySerial.write(112); // Write integer 112 to PIC
-  if(millis() >= time_now + 100){
-    time_now += 100;
-    espclient.publish("cage_1/feed_1/OFF", "OFF"); 
-  }
-}
-
-void feed_1_on_1p5kg () {
-  mySerial.write(113); // Write integer 113 to PIC
-  if(millis() >= time_now + 100){
-    time_now += 100;
-    espclient.publish("cage_1/feed_1/OFF", "OFF"); 
-  }
-}
-
-//feed 2 voids
-
-void feed_2_on_0p5kg () {
-  mySerial.write(211); // Write integer 211 to PIC
-  if(millis() >= time_now + 100){
-    time_now += 100;
-    espclient.publish("cage_2/feed_2/OFF", "OFF"); 
-  }
-}
-
-void feed_2_on_1kg () {
-  mySerial.write(212); // Write integer 212 to PIC
-  if(millis() >= time_now + 100){
-    time_now += 100;
-    espclient.publish("cage_2/feed_2/OFF", "OFF"); 
-  }
-}
-
-void feed_2_on_1p5kg () {
-  mySerial.write(213); // Write integer 213 to PIC
-  if(millis() >= time_now + 100){
-    time_now += 100;
-    espclient.publish("cage_2/feed_2/OFF", "OFF"); 
-  }
-}
                                                               
 void setup() 
 {
-  Serial.begin(115200);
+  Serial.begin(9600);
   mySerial.begin(9600);
+  mySerial2.begin(9600);
   
   delay(1000);                   
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);                               
@@ -177,14 +277,7 @@ void setup()
   Serial.println();
   Serial.print("Connected to ");
   Serial.println(WIFI_SSID);
-  
-  // Initialize DS3231
-  Serial.println("Initialize DS3231");;
-  clock1.begin();
-
-  // Set sketch compiling time
-  clock1.setDateTime(__DATE__, __TIME__);
-
+ 
   pinMode(LED_BUILTIN, OUTPUT);
   espclient.setServer(mqtt_server, 1883);
   espclient.setCallback(callback);
@@ -204,36 +297,108 @@ void loop()
 
   //Ultrasonic Sensor Water Tank (Master PIC)
 
-    if (mySerial.read() == 'x') {
+  /*if(millis() >= time_now + 100){
+    //time_now += 100;
+    mySerial.write(' ');
+  }*/
+/*
+  if(millis() >= delay_sched + 500){
+      delay_sched += 500;
+  mySerial.write('t');    
+  mySerial.write(feed1_0.c_str());
+  mySerial.write("\n\r");
+  mySerial.write('t'); 
+  mySerial.write(feed1_1.c_str());
+  mySerial.write("\n\r");
+  mySerial.write('t'); 
+  mySerial.write(feed1_2.c_str());
+  mySerial.write("\n\r");
+  mySerial.write('t'); 
+  mySerial.write(feed2_0.c_str());
+  mySerial.write("\n\r");
+  mySerial.write('t'); 
+  mySerial.write(feed2_1.c_str());
+  mySerial.write("\n\r");
+  mySerial.write('t'); 
+  mySerial.write(feed2_2.c_str());
+  mySerial.write("\n\r");
+
+  mySerial.write('t'); 
+  mySerial.write(wash1_0.c_str());
+  mySerial.write("\n\r");
+  mySerial.write('t'); 
+  mySerial.write(wash1_1.c_str());
+  mySerial.write("\n\r");
+  mySerial.write('t'); 
+  mySerial.write(wash1_2.c_str());
+  mySerial.write("\n\r");
+  mySerial.write('t'); 
+  mySerial.write(wash2_0.c_str());
+  mySerial.write("\n\r");
+  mySerial.write('t'); 
+  mySerial.write(wash2_1.c_str());
+  mySerial.write("\n\r");
+  mySerial.write('t'); 
+  mySerial.write(wash2_2.c_str());
+  mySerial.write("\n\r");
+  }*/
+
+  if(millis() >= delay_sched + 500){
+      delay_sched += 500;
+
+      mySerial.write('o');
+  }
+
+/*
+if (mySerial.read() == 't'){
+      timeRead = mySerial.readStringUntil('\n');
+      //timeInt = timeRead.toInt();
+      //timeRead.trim();
+      //espclient.publish("feed_tank_1", String(ultrasonicIntY).c_str());
+  }
+
+  Serial.println();
+      Serial.print("time: ");
+      Serial.print(timeRead);
+      Serial.println(timeRead.length());*/
+
+  if (mySerial.read() == 'z') {
+      ultrasonicReadZ = mySerial.readStringUntil('\r');
+      ultrasonicIntZ = ultrasonicReadZ.toInt();
+      //Serial.println();
+      //Serial.print("Feed Tank 2: ");
+      //Serial.print(ultrasonicIntZ);
+      espclient.publish("feed_tank_2", String(ultrasonicIntZ).c_str());
+  }
+
+  if (mySerial.read() == 'x') {
       ultrasonicRead = mySerial.readStringUntil('\r');
       ultrasonicInt = ultrasonicRead.toInt();
-      percentage = map(ultrasonicInt, 20, 4, 0, 100);
-      if (percentage < 0) {
-        percentage = 0;
-      }
-
-      else if (percentage > 100) {
-        percentage = 100; 
-      }
-      Serial.print("Water Tank : ");
-      Serial.println(percentage);
+      //Serial.println();
+      //Serial.print("Water Tank : ");
+      //Serial.print(ultrasonicInt);
+      espclient.publish("water_tank", String(ultrasonicInt).c_str());
   }
 
  //Ultrasonic Sensor Water Tank (Slave 1 PIC)
-  if (mySerial.read() == 'y') {
-      ultrasonicReadY= mySerial.readStringUntil('\r');
+  if (mySerial.read() == 'y'){
+      ultrasonicReadY = mySerial.readStringUntil('\r');
       ultrasonicIntY = ultrasonicReadY.toInt();
-      percentageY = map(ultrasonicIntY, 20, 4, 0, 100);
-      if (percentageY < 0) {
-        percentageY = 0;
-      }
-
-      else if (percentageY > 100) {
-        percentageY = 100; 
-      }
-      Serial.print("Feed Tank 1: ");
-      Serial.println(percentageY);
+      //Serial.println();
+      //Serial.print("Feed Tank 1: ");
+      //Serial.print(ultrasonicIntY);
+      espclient.publish("feed_tank_1", String(ultrasonicIntY).c_str());
   }
+
+      /*Serial.print("Firebase time: ");
+      Serial.print(feed1_0);
+      Serial.println(feed1_0.length());*/
+
+  if (timeRead == feed1_0) {
+      //Serial.println();
+      espclient.publish("cage_1/feed_1/OFF", "ON");
+      //espclient.publish("cage_1/feed_1/OFF", "OFF");
+      }
 
  if (!espclient.connected()) {
     reconnect();
